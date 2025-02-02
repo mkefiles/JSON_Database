@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript DB</title>
+    <style>
+        body{
+            margin: 0 auto;
+            padding: 100px 100px;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
+        h1, h2{
+            text-align: center;
+        }
+        .form{
+            display: flex;
+            flex-direction: column;
+        }
+        .form-grp{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+            padding-bottom: 10px;
+        }
+        .form-grp__lbl{
+            width: 175px;
+        }
+        .form-grp__inp{
+            width: 175px;
+            border-radius: 5px;
+            border-color: lightgray;
+        }
+        .error-message{
+            color: red;
+            font-size: x-small;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            margin: 0;
+        }
+        .results{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+        }
+        .results__tbl{
+            text-align: left;
+        }
+        .results__tbl > thead {
+            text-align: center;
+        }
+        .hidden{
+            display: none;
+        }
+        .input-warning{
+            border-color: red;
+        }
+        .input-caution{
+            border-color: orange;
+        }
+        .input-success{
+            border-color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Do Not Contact</h1>
+    <h2>Search</h2>
+    <form class="form">
+        <div class="form-grp">
+            <label class="form-grp__lbl" for="cname">Name (0 || 3 letters)</label>
+            <input class="form-grp__inp" type="text" name="cname" id="cname" placeholder="Apple Inc">
+        </div>
+        <div class="form-grp">
+            <label class="form-grp__lbl" for="ccity">City (0 || 3 letters)</label>
+            <input class="form-grp__inp" type="text" name="ccity" id="ccity" placeholder="Canton">
+        </div>
+        <div class="form-grp">
+            <label class="form-grp__lbl" for="czip">Zip (0 || 5 digits)</label>
+            <input class="form-grp__inp" type="text" name="czip" id="czip" placeholder="04221">
+        </div>
+        <div class="form-grp">
+            <input class="form-grp__inp" type="submit" value="Search" id="submit" disabled>
+            <input class="form-grp__inp" type="button" value="Clear" id="clear">
+        </div>
+        <div class="form-grp">
+            <p class="error-message hidden" id="error">The input provided is unacceptable. Please retry.</p>
+        </div>
+    </form>
+    <hr>
+    <h2>Results</h2>
+    <div class="results">
+        <table class="results__tbl">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>City</th>
+                    <th>Zip Code</th>
+                </tr>
+            </thead>
+            <tbody id="tableResults">
+                <!-- Dynamically Populated Table -->
+            </tbody>
+        </table>
+    </div>
+</body>
+<script>
+    // IMPORTANT: Ensure all data is capitalized
+    // TODO: ...
+    // FIXME: ...
+
+    /***************
+    * SYNCHRONOUS JAVASCRIPT
+    ***************/
+    let companyInput = document.getElementById("cname");
+    let cityInput = document.getElementById("ccity");
+    let zipInput = document.getElementById("czip");
+    let submitBtn = document.getElementById("submit");
+    let clearBtn = document.getElementById("clear");
+    let errorMsg = document.getElementById("error");
+    let tableResults = document.getElementById("tableResults");
+
+    function emptySearch (inp01, inp02, inp03) {
+        // DESC: Checks if an empty search is attempted
+        if (inp01.value === "" && inp02.value === "" && inp03.value === "") {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function entryHighlighter (inpElement, regExp) {
+        // DESC: Highlights the input fields according to input
+        let namePattern = regExp;
+        if (namePattern.test(inpElement.value)) {
+            inpElement.classList.add("input-success");
+            inpElement.classList.remove("input-caution");
+        } else {
+            inpElement.classList.add("input-caution");
+            inpElement.classList.remove("input-success");
+        }
+    }
+
+    function resetElements (inpElement) {
+        // DESC: Resets elements (i.e., if Clear button is clicked)
+        inpElement.value = "";
+        inpElement.classList.remove("input-success");
+        inpElement.classList.remove("input-caution");
+    }
+
+    function searchCheck (inpElement, regExp) {
+        // DESC: Check if search is valid
+        let namePatten = regExp;
+        return namePatten.test(inpElement.value);
+    }
+
+    function searchData (dataSet, objectKey, searchString) {
+        filteredData = [];
+        for (let i = 0; i < dataSet.length; i++) {
+            if (dataSet[i][objectKey].includes(searchString)) {
+                filteredData.push(dataSet[i]);
+            }
+        }
+        return filteredData;
+    }
+
+    function populateTable (dataSet) {
+        for (i = 0; i < dataSet.length; i++) {
+            let row = tableResults.insertRow(-1);
+            let companyCell = row.insertCell(0);
+            let cityCell = row.insertCell(1);
+            let zipCell = row.insertCell(2);
+            companyCell.innerText = dataSet[i]["name"];
+            cityCell.innerText = dataSet[i]["city"];
+            zipCell.innerText = dataSet[i]["zip"];
+        }
+    }
+
+    /***************
+    * ASYNCHRONOUS JAVASCRIPT
+    ***************/
+
+    // DESC: Initialize the local data-set memory allocation
+    let loadedDataSet = [];
+
+    (async function loadData() {
+        // DESC: An 'Immediately Invoked (Asynchronous) Function Expression' 
+        try {
+            // DESC: Get data (from server)
+            const res = await fetch("data.json");
+
+            // DESC: Convert data to JSON format
+            const data = await res.json();
+
+            // DESC: Add data to the local memory
+            loadedDataSet = await data;
+
+            // DESC: Enable 'Submit' button
+            submitBtn.disabled = false;
+        }
+        catch {
+            // DESC: Display error in the error message field
+            errorMsg.classList.remove("hidden");
+            errorMsg.innerText = "An error was encountered when trying to pull in data source...";
+        }
+    })();
+
+    /***************
+    * EVENT-HANDLING
+    ***************/
+
+    submitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        if (emptySearch(companyInput, cityInput, zipInput)) {
+            // DESC: If empty search, then...
+            // DESC: Display error message
+            errorMsg.classList.remove("hidden");
+            errorMsg.innerText = "Please provide, at least, one valid search criteria.";
+
+            // DESC: Change input-fields to red
+            companyInput.classList.add("input-warning");
+            cityInput.classList.add("input-warning");
+            zipInput.classList.add("input-warning");
+        } else {
+            // DESC: If not an empty search, then...
+            // DESC: Remove error message (if appplicable)
+            errorMsg.classList.add("hidden");
+            errorMsg.innerText = ""
+
+            // DESC: Remove warning styling on input-fields
+            companyInput.classList.remove("input-warning");
+            cityInput.classList.remove("input-warning");
+            zipInput.classList.remove("input-warning");
+
+            // DESC: Check if inputs match search criteria
+            let isValidSearch = [];
+            isValidSearch.push(searchCheck(companyInput, /[A-Za-z]{3,}/));
+            entryHighlighter(companyInput, /[A-Za-z]{3,}/);
+
+            isValidSearch.push(searchCheck(cityInput, /[A-Za-z]{3,}/));
+            entryHighlighter(cityInput, /[A-Za-z]{3,}/);
+
+            isValidSearch.push(searchCheck(zipInput, /[0-9]{5}/));
+            entryHighlighter(zipInput, /[0-9]{5}/);
+
+            let updatedDataSet = [];
+
+            if (isValidSearch[0]) {
+                // DESC: Filter results by company name
+                let companyName = companyInput.value.toUpperCase();
+                updatedDataSet = searchData(loadedDataSet, "name", companyName);
+            } 
+            else {
+                updatedDataSet = loadedDataSet;
+            }
+
+            if (isValidSearch[1]) {
+                // DESC: Filter results by city name
+                let cityName = cityInput.value.toUpperCase();
+                updatedDataSet = searchData(updatedDataSet, "city", cityName);
+            }
+
+            if (isValidSearch[2]) {
+                // DESC: Filter results by zip code
+                let zipCode = zipInput.value;
+                updatedDataSet = searchData(updatedDataSet, "zip", zipCode);
+            }
+
+            // DESC: Reset Table
+            while (tableResults.childNodes.length > 1) {
+                tableResults.removeChild(tableResults.lastChild);
+            }
+
+            // DESC: Populate Table
+            populateTable(updatedDataSet);
+        }
+    });
+
+    clearBtn.addEventListener("click", (e) => {
+        // DESC: Reset input fields (and any entry-specific styles)
+        resetElements(companyInput);
+        resetElements(cityInput);
+        resetElements(zipInput);
+
+        // DESC: Remove the error message
+        errorMsg.classList.add("hidden");
+
+        // DESC: Reset Table
+        while (tableResults.childNodes.length > 1) {
+            tableResults.removeChild(tableResults.lastChild);
+        }
+    });
+
+    companyInput.addEventListener("change", () => {
+         // DESC: Check for input value change and color accordingly
+        entryHighlighter(companyInput, /[A-Za-z]{3,}/);
+    });
+
+    cityInput.addEventListener("change", () => {
+        // DESC: Check for input value change and color accordingly
+        entryHighlighter(cityInput, /[A-Za-z]{3,}/);
+    });
+
+    zipInput.addEventListener("change", () => {
+        // DESC: Check for input value change and color accordingly
+        entryHighlighter(zipInput, /[0-9]{5}/);
+    });
+
+    
+</script>
+</html>
